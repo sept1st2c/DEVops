@@ -1,0 +1,60 @@
+pipeline {
+    // Run on the main Jenkins node
+    agent any 
+
+    // 1. Define the input parameter for 'env'
+    parameters {
+        string(name: 'ENV', defaultValue: 'prod', description: 'Environment to deploy (e.g., prod)')
+    }
+
+    // 2. Set environment variables
+    environment {
+        // Get our Service Principal credentials from the Jenkins store
+        AZURE_CLIENT_SECRET   = credentials('AZURE_CLIENT_SECRET')
+        AZURE_CLIENT_ID       = credentials('AZURE_CLIENT_ID')
+        AZURE_TENANT_ID       = credentials('AZURE_TENANT_ID')
+        AZURE_SUBSCRIPTION_ID = credentials('AZURE_SUBSCRIPTION_ID')
+        
+        // This is how we support Task 6: "Use different state files"
+        // We are dynamically setting the state file name
+        STATE_KEY = "environments/${params.ENV}.tfstate"
+    }
+
+    stages {
+        // 3. Login Stage
+        stage('Login to Azure') {
+            steps {
+                sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
+                sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+            }
+        }
+
+        // 4. Terraform Init Stage
+        stage('Terraform Init') {
+            steps {
+                // Run all commands from the correct environment directory
+                dir("environments/${params.ENV}") {
+                    // Pass the backend config, including our dynamic state key
+                    sh 'terraform init -backend-config="key=$STATE_KEY"'
+                }
+            }
+        }
+
+        // 5. Terraform Apply Stage
+        stage('Terraform Apply') {
+            steps {
+                dir("environments/${params.ENV}") {
+                    // Apply with auto-approve, since this is an automated pipeline
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+    }
+    
+    // 6. Always log out
+    post {
+        always {
+            sh 'az logout'
+        }
+    }
+}

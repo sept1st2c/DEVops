@@ -1,0 +1,9 @@
+# Terraform local state and provider binaries
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.log
+crash.log
+*.pem
+*.pfx
+.terraform.lock.hcl
