@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Messages App</title>
+</head>
+<body>
+  <h1>Messages Application</h1>
+
+  <form id="message-form">
+    <input type="text" id="author" placeholder="Your name" required />
+    <input type="text" id="text" placeholder="Your message" required />
+    <button type="submit">Send</button>
+  </form>
+
+  <h2>All messages</h2>
+  <ul id="messages"></ul>
+
+  <script>
+    async function loadMessages() {
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      const list = document.getElementById("messages");
+      list.innerHTML = "";
+      data.forEach(msg => {
+        const li = document.createElement("li");
+        li.textContent = msg.author + ": " + msg.text;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("message-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const author = document.getElementById("author").value.trim();
+      const text = document.getElementById("text").value.trim();
+      if (!author || !text) return;
+
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author, text })
+      });
+
+      document.getElementById("text").value = "";
+      await loadMessages();
+    });
+
+    loadMessages();
+  </script>
+</body>
+</html>

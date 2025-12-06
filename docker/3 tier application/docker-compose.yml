@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  mongo-db:
+    image: mongo:6
+    container_name: mongo-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend-api:
+    build: ./backend
+    container_name: backend-api
+    restart: unless-stopped
+    environment:
+      - MONGO_URL=mongodb://mongo-db:27017/messagesdb
+    depends_on:
+      - mongo-db
+
+  nginx-proxy:
+    build: ./nginx
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend-api
+
+volumes:
+  mongo_data:
